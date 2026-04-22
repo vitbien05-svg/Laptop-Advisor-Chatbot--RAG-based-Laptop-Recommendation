@@ -237,8 +237,8 @@ The app will open at `http://localhost:8501`.
 - [ ] Add pre-retrieval filters by price, brand, and use case
 - [ ] Support side-by-side comparison of 2–3 laptops
 - [ ] Display product images directly in the chat
-- [ ] Include direct purchase links to Thế Giới Di Động
-- [ ] Set up a cron job for automatic periodic data refresh
+- [ ] Include direct purchase links to Product page
+- [ ] Automatically crawl and integrate laptop data from multiple retailers (FPT Shop, CellphoneS, etc.)
 - [ ] Upgrade to a larger model (Qwen 7B / 14B) for better responses
 - [ ] Deploy to cloud (Streamlit Cloud / HuggingFace Spaces)
 
@@ -246,7 +246,7 @@ The app will open at `http://localhost:8501`.
 
 ## 👨‍💻 Author
 
-**Việt sama Studio**
+**ViPa Studio**
 
 ---
 
