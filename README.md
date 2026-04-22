@@ -45,7 +45,7 @@ langchain_learn/
 ├── vector_database.py        # 📦 Vectorize data & store in ChromaDB
 ├── ingest.ipynb              # 📓 Experimental ingestion pipeline notebook
 ├── chat_bot.py               # 🤖 RAG chatbot logic (CLI version)
-├── giao_dien.py              # 🎨 Streamlit web interface (Web UI)
+├── user_interface.py              # 🎨 Streamlit web interface (Web UI)
 ├── vectorstore/              # 💾 Persisted ChromaDB vector database
 │   └── chroma.sqlite3
 └── README.md                 # 📖 Project documentation
@@ -136,7 +136,7 @@ User Input ──▶ [Chain 1: Recap] ──▶ Full Query ──▶ [Retriever]
 4. Never contradict earlier requirements
 5. If no match found → ask follow-up questions (max 3)
 
-### 5️⃣ Web Deployment (`giao_dien.py`)
+### 5️⃣ Web Deployment (`user_interface.py`)
 
 The web interface is built with **Streamlit**, featuring:
 
@@ -212,7 +212,7 @@ python chat_bot.py
 
 **Option B — Web UI (Streamlit):**
 ```bash
-streamlit run giao_dien.py
+streamlit run user_interface.py
 ```
 
 The app will open at `http://localhost:8501`.
