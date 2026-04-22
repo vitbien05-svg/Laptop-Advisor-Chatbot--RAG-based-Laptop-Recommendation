@@ -28,7 +28,7 @@
 ## 🏗️ System Architecture
 
 <p align="center">
-  <img src="./system_architecture.png" alt="System Architecture - Overall Pipeline" width="600">
+  <img src="./Demo_laptop_recommendation.png" alt="System Architecture - Overall Pipeline" width="600">
 </p>
 
 ---
