@@ -117,24 +117,22 @@ Converts laptop information into **LangChain Documents** with the following stru
 
 ### 4️⃣ RAG Chatbot (`chat_bot.py`)
 
-The chatbot uses a **2-chain architecture**:
+The chatbot uses a **single-chain RAG architecture**:
 
 ```
-User Input ──▶ [Chain 1: Recap] ──▶ Full Query ──▶ [Retriever] ──▶ RAG Context
-                                                                        │
-                                                                        ▼
-              Response ◀── [Chain 2: Answer] ◀── Full Query + RAG Context + History
+User Input ──▶ [Retriever (ChromaDB)] ──▶ RAG Context
+                                               │
+                                               ▼
+              Response ◀── [Answer Chain] ◀── User Input + RAG Context + History
 ```
 
-- **Chain 1 — Recap Chain:** Summarizes the user's request based on conversation history → generates a comprehensive query for the retriever
-- **Chain 2 — Answer Chain:** Generates a recommendation response based on retrieved laptops + chat history
+- **Retriever:** Performs semantic search on ChromaDB to find the top-k most relevant laptops
+- **Answer Chain:** Generates a recommendation response based on retrieved laptops + chat history
 
 **Chatbot rules:**
 1. Only recommend laptops from the available dataset
 2. Always provide price and specifications
-3. Inherit previous requirements (budget, use case)
-4. Never contradict earlier requirements
-5. If no match found → ask follow-up questions (max 3)
+3. If no match found → ask follow-up questions (max 3)
 
 ### 5️⃣ Web Deployment (`user_interface.py`)
 

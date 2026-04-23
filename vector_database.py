@@ -1,9 +1,8 @@
 from pymongo import MongoClient
 from langchain_core.documents import Document
-from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 import pandas as pd
-
+from langchain_huggingface import HuggingFaceEmbeddings
 pd.set_option("display.max_colwidth", None)
 import os
 
@@ -18,7 +17,7 @@ def create_laptop_document(row):
 
     price = row.get("price")
     if pd.notnull(price) and price > 0:
-        parts.append(f"Giá bán: {price/1_000_000:.2f} triệu VNĐ.")
+        parts.append(f"Giá: {price/1_000_000:.2f} triệu Đồng.")
 
     # make cpu, ram, rom, gpu into group to easily manage
     perf = []
@@ -61,11 +60,11 @@ def create_laptop_document(row):
     # 4. Nhóm Thiết kế & Năm ra mắt (Theo ý ông muốn thêm vào)
     design = []
     if pd.notnull(row.get("material")):
-        design.append(f"vỏ máy tính được làm bằng {row.get('material')}")
+        design.append(f"vỏ máy tính làm bằng {row.get('material')}")
     if pd.notnull(row.get("weight_kg")):
         design.append(f"cân nặng {row.get('weight_kg')}kg")
     if pd.notnull(row.get("release_year")):
-        design.append(f"Máy được ra mắt năm {int(row['release_year'])}")
+        design.append(f"Máy ra mắt năm {int(row['release_year'])}")
 
     if design:
         parts.append("Thiết kế: " + ", ".join(design) + ".")
@@ -103,10 +102,11 @@ for i, item in data.iterrows():
             print(f"Row {i} bị rỗng")
     except Exception as e:
         print(f"error row {i}: {e}")
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
-# 4. Push to Chroma
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+
+
 vectorstore = Chroma.from_documents(
-    documents=documents,
+    documents=documents,        
     embedding=embeddings,
     persist_directory="./vectorstore",
     ids=[doc.metadata["id"] for doc in documents],

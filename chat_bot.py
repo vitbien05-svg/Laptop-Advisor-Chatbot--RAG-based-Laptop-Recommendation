@@ -1,10 +1,10 @@
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 from vector_database import retriever
-
+from vector_database import vectorstore
 template = """
 Bạn là một người tư vấn mua laptop cho sinh viên tại Việt Nam.
-Hãy cho ra câu trả lời ngắn gọn. Khi người dùng hỏi thông tin chi tiết về máy thì mới đưa ra 
+- Hãy luôn đưa ra câu trả lời ngắn gọn. Khi người dùng hỏi thông tin chi tiết về máy thì mới đưa ra 
 Quy tắc:
 1. Chỉ tư vấn dựa trên DANH SÁCH LAPTOP bên dưới
 2. Hãy tư vấn nhiệt tình về sản phẩm (hãy đưa ra giá bán của máy)
@@ -23,30 +23,29 @@ Trả lời:
 """
 
 
-recap_template = """
-Bạn là AI giúp hiểu yêu cầu người dùng. Mục đích là tóm tắt lại văn bản về tư vấn máy tính 
+# recap_template = """
+# Bạn là AI giúp hiểu yêu cầu người dùng. Mục đích là tóm tắt lại văn bản về tư vấn máy tính 
 
-Dựa vào lịch sử hội thoại, hãy viết lại yêu cầu hiện tại thành 1 đoạn văn ngắn đầy đủ.
+# Dựa vào lịch sử hội thoại, hãy viết lại yêu cầu hiện tại thành 1 đoạn văn ngắn đầy đủ.
 
-Yêu cầu:
--Hãy giữ lại tất cả thông tin quan trọng về máy tính, nhu cầu người dùng, mục đích
-- Không thêm thông tin mới
-- Viết đầy đủ thông tin máy tính, nhu cầu người dùng 
-- giữ lại yêu cầu, mong muốn của người dùng về sản phẩm 
+# Yêu cầu:
+# -Hãy giữ lại tất cả thông tin quan trọng về máy tính, nhu cầu người dùng, mục đích
+# - Không thêm thông tin mới
+# - Viết đầy đủ thông tin máy tính, nhu cầu người dùng 
+# - giữ lại yêu cầu, mong muốn của người dùng về sản phẩm 
 
-History:
-{chat_history}
-User input:
-{question}
-Full query:
-
-"""
+# History:
+# {chat_history}
+# User input:
+# {question}
+# Full query:
+# """
 prompt_answer = ChatPromptTemplate.from_template(template)
 model = OllamaLLM(model="qwen2.5:3b")
 chain_answer = prompt_answer | model
 
-prompt_recap = ChatPromptTemplate.from_template(recap_template)
-chain_recap = prompt_recap | model
+# prompt_recap = ChatPromptTemplate.from_template(recap_template)
+# chain_recap = prompt_recap | model
 
 
 def format_docs(docs):
@@ -63,16 +62,14 @@ def handle_conversation():
         user_input = input("You: ")
         if user_input.lower() == "q":
             break
-        full_query = chain_recap.invoke(
-            {"chat_history": history, "question": user_input}
-        )
-        docs = retriever.invoke(full_query)
+        docs = retriever.invoke(user_input)
+        # print(docs)
         rag_context = format_docs(docs)
         result = chain_answer.invoke(
             {
                 "rag_context": rag_context,
                 "chat_history": history,
-                "question": full_query,
+                "question": user_input,
             }
         )
         print("Bot: ", result)

@@ -176,8 +176,6 @@ Quy tắc:
 2. Hãy tư vấn nhiệt tình về sản phẩm (hãy đưa ra giá bán của máy)
 3. Nếu không tìm thấy → hỏi thêm ( chỉ hỏi thêm 3 câu là hết cỡ)
 4. Luôn cho user biết giá của sản phẩm + cấu hình máy
-5. Phải kế thừa yêu cầu trước đó (ngân sách, nhu cầu)
-6. Không được mâu thuẫn với yêu cầu trước
 --- DANH SÁCH LAPTOP ---
 {rag_context}
 -- Lịch sử câu trả lời --
@@ -185,19 +183,8 @@ Quy tắc:
 Câu hỏi: {question}
 Trả lời:"""
 
-    recap_template = """
-Bạn là AI giúp hiểu yêu cầu người dùng về tư vấn máy tính.
-Dựa vào lịch sử hội thoại, hãy viết lại yêu cầu hiện tại thành 1 đoạn văn ngắn đầy đủ.
-- Giữ lại thông tin quan trọng: máy tính, nhu cầu, mục đích, ngân sách
-- Không thêm thông tin mới
-History: {chat_history}
-User input: {question}
-Full query:"""
 
-    chain_answer = ChatPromptTemplate.from_template(template) | model
-    chain_recap = ChatPromptTemplate.from_template(recap_template) | model
-
-    return retriever, chain_answer, chain_recap
+    return retriever, chain_answer
 
 
 def format_docs(docs):
@@ -209,7 +196,7 @@ def format_docs(docs):
 # ══════════════════════════════════════════════════════════════
 # LOAD RESOURCES
 # ══════════════════════════════════════════════════════════════
-retriever, chain_answer, chain_recap = load_resources()
+retriever, chain_answer = load_resources()
 
 # ══════════════════════════════════════════════════════════════
 # SESSION STATE
@@ -279,16 +266,13 @@ if user_input:
             unsafe_allow_html=True,
         )
 
-        full_query = chain_recap.invoke(
-            {"chat_history": st.session_state.history, "question": user_input}
-        )
-        docs = retriever.invoke(full_query)
+        docs = retriever.invoke(user_input)
         rag_context = format_docs(docs)
         response = chain_answer.invoke(
             {
                 "rag_context": rag_context,
                 "chat_history": st.session_state.history,
-                "question": full_query,
+                "question":    user_input,
             }
         )
 
@@ -306,7 +290,7 @@ with st.sidebar:
         "Trợ lý tư vấn laptop cho sinh viên Việt Nam, make by Việt sama Studio."
     )
     st.divider()
-    if st.button("🗑️ Delete chat history", use_container_width=True):
+    if st.button("🗑️ Delete history", use_container_width=True):
         st.session_state.messages = []
         st.session_state.history = ""
         st.rerun()
