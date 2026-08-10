@@ -1,0 +1,16 @@
+{"query": "laptop chơi game mượt", "type": "need", "tag": "gaming"}
+{"query": "máy tính cho lập trình viên code nhiều", "type": "need", "tag": "lap_trinh_ky_thuat"}
+{"query": "laptop mỏng nhẹ dễ mang đi học cả ngày", "type": "need", "tag": "mong_nhe_di_dong"}
+{"query": "máy làm đồ họa thiết kế chỉnh ảnh màu chuẩn", "type": "need", "tag": "do_hoa_sang_tao"}
+{"query": "laptop cho sinh viên văn phòng học tập", "type": "need", "tag": "van_phong_hoc_tap"}
+{"query": "máy xem phim giải trí màn hình lớn đẹp", "type": "need", "tag": "giai_tri_da_phuong_tien"}
+{"query": "laptop hiệu năng cao chạy tác vụ nặng", "type": "need", "tag": "hieu_nang_cao"}
+{"query": "máy gaming cao cấp chơi game AAA nặng", "type": "need", "tag": "gaming_cao_cap"}
+{"query": "laptop giá rẻ dưới 15 triệu", "type": "constraint", "check": {"price_max": 15}}
+{"query": "laptop tầm dưới 20 triệu", "type": "constraint", "check": {"price_max": 20}}
+{"query": "laptop RAM 16GB trở lên", "type": "constraint", "check": {"ram_min": 16}}
+{"query": "laptop RAM 32GB cấu hình mạnh", "type": "constraint", "check": {"ram_min": 32}}
+{"query": "laptop hãng Asus", "type": "constraint", "check": {"brand": "asus"}}
+{"query": "laptop Dell", "type": "constraint", "check": {"brand": "dell"}}
+{"query": "laptop MSI gaming", "type": "constraint", "check": {"brand": "msi"}}
+{"query": "laptop Lenovo", "type": "constraint", "check": {"brand": "lenovo"}}

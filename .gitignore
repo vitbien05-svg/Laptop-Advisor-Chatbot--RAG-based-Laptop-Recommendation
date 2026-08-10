@@ -1,0 +1,16 @@
+# Secrets — KHÔNG commit key
+.env
+
+# Vector store (build lại bằng src/vector_database.py)
+vectorstore/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Logs / temp
+*.log

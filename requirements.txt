@@ -1,0 +1,26 @@
+# Core RAG / LLM
+langchain
+langchain-core
+langchain-community
+langchain-openai
+langchain-huggingface
+langchain-ollama
+openai
+chromadb
+
+# Data
+pymongo
+pandas
+python-dotenv
+pydantic
+
+# Crawl
+playwright
+beautifulsoup4
+
+# Retrieval nâng cấp (Phase 2)
+sentence-transformers
+bm25s
+
+# UI
+streamlit

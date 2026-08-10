@@ -5,6 +5,21 @@ import pandas as pd
 from langchain_huggingface import HuggingFaceEmbeddings
 pd.set_option("display.max_colwidth", None)
 import os
+from langchain_openai import OpenAIEmbeddings
+from dotenv import load_dotenv
+load_dotenv()
+
+# Ánh xạ nhãn use-case → cụm từ "ngôn ngữ nhu cầu" để nhúng vào page_content (giúp semantic)
+TAG_PHRASES = {
+    "van_phong_hoc_tap": "phù hợp văn phòng, học tập, sinh viên",
+    "mong_nhe_di_dong": "mỏng nhẹ, dễ mang đi, tính di động cao",
+    "gaming": "chơi game, gaming",
+    "gaming_cao_cap": "gaming cao cấp, chơi game nặng đồ họa cao",
+    "do_hoa_sang_tao": "thiết kế đồ họa, sáng tạo nội dung, dựng phim, chỉnh ảnh",
+    "lap_trinh_ky_thuat": "lập trình, code, kỹ thuật, IT",
+    "hieu_nang_cao": "hiệu năng cao, tác vụ nặng, workstation",
+    "giai_tri_da_phuong_tien": "giải trí, xem phim, đa phương tiện",
+}
 
 
 def create_laptop_document(row):
@@ -72,11 +87,22 @@ def create_laptop_document(row):
     # 5. port
     if pd.notnull(row.get("port")):
         parts.append(f"Máy gồm các cổng kết nối sau: {row.get('port')}.")
+
+    # 6. ENRICHMENT — nhãn use-case (ngôn ngữ nhu cầu) + summary chưng cất → cải thiện semantic
+    tags = row.get("use_case_tags") or []
+    if isinstance(tags, (list, tuple)) and len(tags) > 0:
+        phrases = [TAG_PHRASES.get(t, t) for t in tags]
+        parts.append("Nhu cầu phù hợp: " + "; ".join(phrases) + ".")
+    summary = row.get("use_case_summary")
+    if isinstance(summary, str) and summary.strip():
+        parts.append(summary.strip())
+
     # merge everything to become Full text
     page_content = " ".join(parts)
 
     metadata = {
         "id": str(row.get("id")),
+        "name": str(name) if pd.notnull(name) else "",
         "brand": str(brand).lower(),
         "price_num": float(price / 1_000_000) if pd.notnull(price) else 0,
         "ram_gb": int(row.get("ram_info", 0)) if pd.notnull(row.get("ram_info")) else 0,
@@ -84,6 +110,8 @@ def create_laptop_document(row):
         "url": str(row.get("url_product", "")),
         "img": str(row.get("img_product", "")),
         "gpu_name": str(row.get("gpu_name", "")),
+        "use_case_tags": ",".join(tags) if isinstance(tags, (list, tuple)) else "",
+        "price_tier": str(row.get("price_tier", "")),
     }
     return Document(page_content=page_content, metadata=metadata)
 
@@ -102,14 +130,15 @@ for i, item in data.iterrows():
             print(f"Row {i} bị rỗng")
     except Exception as e:
         print(f"error row {i}: {e}")
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
-
+# embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+embeddings = OpenAIEmbeddings(model ="text-embedding-3-small")
 
 vectorstore = Chroma.from_documents(
     documents=documents,        
     embedding=embeddings,
     persist_directory="./vectorstore",
     ids=[doc.metadata["id"] for doc in documents],
+
 )
 print("Finish Vector Database!")
 retriever = vectorstore.as_retriever(search_kwargs={"k": 5})

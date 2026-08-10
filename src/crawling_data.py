@@ -5,12 +5,11 @@ import pandas as pd
 import random
 import os
 
-
 client = MongoClient("mongodb://localhost:27017/")
 db = client["LaptopDataDB"]
 collection = db["laptops"]
 brand_urls = [
-    # "https://www.thegioididong.com/laptop-asus",
+    "https://www.thegioididong.com/laptop-asus",
     "https://www.thegioididong.com/laptop-dell",
     "https://www.thegioididong.com/laptop-hp-compaq",
     "https://www.thegioididong.com/laptop-lenovo",
@@ -19,11 +18,11 @@ brand_urls = [
     "https://www.thegioididong.com/laptop-gigabyte",
 ]
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)
+    browser = p.chromium.launch(headless=True)
     page = browser.new_page()
     url_page = "https://www.thegioididong.com"
     for craw_page in brand_urls:
-        print(f"\n🚀 Đang cào hãng: {craw_page}")
+        print(f"\n Đang cào hãng: {craw_page}")
         page.goto(craw_page)
         current_brand = craw_page.split("laptop-")[-1].upper()
         brand_products = []
@@ -149,11 +148,17 @@ with sync_playwright() as p:
                 print("Error:", e)
         if brand_products:
             try:
-                collection.insert_many(brand_products)
-                print(f"[MongoDB] successfully save {len(brand_products)} samples")
+                for product in brand_products:
+                    collection.update_one(
+                        {"url_product": product["url_product"]},
+                        {"$set": product},
+                        upsert=True,
+                    )
             except Exception as eMongo:
-                print(f"[MongoDB Error] can't save : {eMongo}")
-        else:
-            print("[MongoDB] Something wrong, this brand aren't find any products")
+                print(
+                    f"[MongoDB Error] product url index: {product['url_product']}: {eMongo}"
+                )
+                print(f"[MongoDB] Updated successfully {current_brand}")
+
     browser.close()
     print("\n finished")
