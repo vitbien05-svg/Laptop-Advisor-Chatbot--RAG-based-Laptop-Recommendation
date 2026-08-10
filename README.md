@@ -12,8 +12,6 @@
 An **agentic RAG** chatbot that recommends laptops to Vietnamese students by need and budget.
 It's a **recommendation** problem (many valid answers), not factual QA — which drives the retrieval design.
 
-> 📚 Deep-dive (design decisions, evaluation numbers, why-each-choice): **[docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)**
-
 ---
 
 ## 🧩 Techniques
@@ -50,7 +48,6 @@ src/         # RAG pipeline: crawl → enrich → index → retrieve → agent �
 eval/        # retrieval evaluation (Precision@k, NDCG@k)
 data/        # raw crawl snapshot + taxonomy validation sample
 notebooks/   # cleaning notebook + early prototypes
-docs/        # deep-dive documentation
 assets/      # architecture diagram + demo screenshot
 ```
 
