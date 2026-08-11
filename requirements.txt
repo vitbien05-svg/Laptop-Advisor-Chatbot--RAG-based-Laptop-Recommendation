@@ -24,3 +24,6 @@ bm25s
 
 # UI
 streamlit
+
+# Đánh giá generation
+ragas

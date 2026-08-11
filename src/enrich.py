@@ -40,9 +40,11 @@ TAG_SET = [
 
 class Distilled(BaseModel):
     use_case_summary: str = Field(
-        description="2-4 câu tiếng Việt KHÁCH QUAN mô tả máy phù hợp NHU CẦU nào và điểm mạnh "
-        "thực tế. BỎ từ ngữ cường điệu marketing ('đáng kinh ngạc', 'chớp mắt'). Chỉ dựa vào "
-        "mô tả + specs được cung cấp, KHÔNG bịa thông số."
+        description="Một ĐOẠN VĂN tiếng Việt KHÁCH QUAN khoảng 8-10 CÂU (liền mạch, không gạch đầu "
+        "dòng), mô tả chi tiết: máy phù hợp những NHU CẦU/đối tượng nào (theo ngành/công việc), điểm "
+        "mạnh thực tế về CPU, GPU, RAM, màn hình, độ di động/pin, và ĐÁNH ĐỔI nếu có. Viết giàu thông "
+        "tin để phục vụ tìm kiếm ngữ nghĩa. BỎ từ ngữ cường điệu marketing ('đáng kinh ngạc', 'chớp "
+        "mắt'). CHỈ dựa vào mô tả + specs được cung cấp, KHÔNG bịa thông số."
     )
     highlights: list[str] = Field(description="3-5 điểm mạnh ngắn gọn, dựa trên specs thật.")
     llm_tags: list[str] = Field(description=f"Các nhãn use-case phù hợp, CHỈ chọn trong: {TAG_SET}")
@@ -50,7 +52,9 @@ class Distilled(BaseModel):
 
 SYSTEM = (
     "Bạn là biên tập viên chắt lọc thông tin laptop. Nhiệm vụ: đọc đoạn mô tả (văn quảng cáo) "
-    "và bảng specs, rồi viết lại thành tóm tắt NHU CẦU khách quan, trung thực với specs. "
+    "và bảng specs, rồi viết lại thành MỘT ĐOẠN VĂN CHI TIẾT, KHÁCH QUAN, dài 8-10 CÂU, trung thực "
+    "với specs. Đoạn văn phải bao quát đủ: đối tượng/ngành học phù hợp, CPU, GPU, RAM/ổ cứng, màn "
+    "hình, độ di động (cân nặng/pin) và ĐÁNH ĐỔI nếu có. Viết liền mạch, KHÔNG gạch đầu dòng. "
     "Tuyệt đối không thêm thông số không có trong dữ liệu. Chỉ chọn nhãn trong danh sách cho sẵn."
 )
 
@@ -65,7 +69,9 @@ def build_user_prompt(doc):
     return (
         f"SPECS: {specs}\n"
         f"RULE_TAGS (tham chiếu): {doc.get('use_case_tags')}\n\n"
-        f"MÔ TẢ:\n{doc.get('description_raw','')[:4000]}"
+        f"MÔ TẢ:\n{doc.get('description_raw','')[:4000]}\n\n"
+        "YÊU CẦU: viết use_case_summary thành ĐOẠN VĂN 8-10 CÂU chi tiết, bao quát đối tượng phù "
+        "hợp, CPU/GPU/RAM/ổ cứng, màn hình, độ di động/pin và đánh đổi."
     )
 
 

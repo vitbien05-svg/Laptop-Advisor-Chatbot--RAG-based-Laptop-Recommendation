@@ -71,20 +71,12 @@ class HybridRetriever:
                 scores[idx] = scores.get(idx, 0.0) + 1.0 / (k + rank + 1)
         return sorted(scores, key=scores.get, reverse=True)
 
-    def search(self, query, k=5, top_n=20, rerank=True, return_scores=False):
-        """Hybrid + RRF (+ rerank) → list[Document] top-k.
-        return_scores=True → trả (docs, scores) với score rerank ∈ [0,1] (sigmoid).
-        """
-        dense = self._dense_ranked(query, top_n)
-        bm25 = self._bm25_ranked(query, top_n)
-        fused = self._rrf([dense, bm25])[:top_n]
-        if not fused:
-            return ([], []) if return_scores else []
-
+    def _pack(self, fused, rerank_query, k, rerank, return_scores):
+        """Cross-encoder rerank (theo rerank_query) → đóng gói top-k Document (+scores)."""
         ordered_scores = None
         if rerank:
             ce = _get_reranker()
-            raw = np.asarray(ce.predict([(query, self.docs[i]) for i in fused]), dtype=float)
+            raw = np.asarray(ce.predict([(rerank_query, self.docs[i]) for i in fused]), dtype=float)
             probs = 1.0 / (1.0 + np.exp(-raw))  # sigmoid → [0,1]
             order = np.argsort(probs)[::-1]
             fused = [fused[o] for o in order]
@@ -95,3 +87,32 @@ class HybridRetriever:
             scores = (ordered_scores or [None] * len(fused))[:k]
             return docs, scores
         return docs
+
+    def search(self, query, k=5, top_n=20, rerank=True, return_scores=False):
+        """Hybrid + RRF (+ rerank) → list[Document] top-k.
+        return_scores=True → trả (docs, scores) với score rerank ∈ [0,1] (sigmoid).
+        """
+        dense = self._dense_ranked(query, top_n)
+        bm25 = self._bm25_ranked(query, top_n)
+        fused = self._rrf([dense, bm25])[:top_n]
+        if not fused:
+            return ([], []) if return_scores else []
+        return self._pack(fused, query, k, rerank, return_scores)
+
+    def search_multi(self, queries, k=5, top_n=20, rerank=True, rerank_query=None,
+                     return_scores=False):
+        """MULTI-QUERY: chạy hybrid cho NHIỀU biến thể câu hỏi rồi RRF gộp TẤT CẢ danh sách
+        (dense+bm25 của mỗi biến thể). Rerank theo `rerank_query` (mặc định = câu gốc = queries[0]).
+
+        Vì sao: mỗi biến thể phủ một cách diễn đạt / bộ từ khóa khác nhau → tăng cơ hội chạm
+        đúng tài liệu khi câu gốc thiếu keyword có trong KB. RRF hợp nhất chỉ bằng THỨ HẠNG
+        nên không cần chuẩn hoá điểm giữa các biến thể.
+        """
+        ranked_lists = []
+        for q in queries:
+            ranked_lists.append(self._dense_ranked(q, top_n))
+            ranked_lists.append(self._bm25_ranked(q, top_n))
+        fused = self._rrf(ranked_lists)[:top_n]
+        if not fused:
+            return ([], []) if return_scores else []
+        return self._pack(fused, rerank_query or queries[0], k, rerank, return_scores)

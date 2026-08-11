@@ -14,3 +14,11 @@
 {"query": "laptop Dell", "type": "constraint", "check": {"brand": "dell"}}
 {"query": "laptop MSI gaming", "type": "constraint", "check": {"brand": "msi"}}
 {"query": "laptop Lenovo", "type": "constraint", "check": {"brand": "lenovo"}}
+{"query": "laptop lập trình dưới 20 triệu", "type": "combined", "tag": "lap_trinh_ky_thuat", "check": {"price_max": 20}}
+{"query": "máy chơi game trong tầm 25 triệu", "type": "combined", "tag": "gaming", "check": {"price_max": 25}}
+{"query": "laptop làm đồ họa thiết kế RAM tối thiểu 32GB", "type": "combined", "tag": "do_hoa_sang_tao", "check": {"ram_min": 32}}
+{"query": "laptop Acer mỏng nhẹ mang đi học", "type": "combined", "tag": "mong_nhe_di_dong", "check": {"brand": "acer"}}
+{"query": "máy gaming cao cấp chơi game nặng dưới 40 triệu", "type": "combined", "tag": "gaming_cao_cap", "check": {"price_max": 40}}
+{"query": "máy cho dân thiết kế render 3D và dựng video chuyên nghiệp", "type": "need", "tag": "do_hoa_sang_tao"}
+{"query": "laptop sinh viên IT học lập trình chạy Docker và máy ảo", "type": "need", "tag": "lap_trinh_ky_thuat"}
+{"query": "máy nhẹ pin lâu tiện mang tới trường mỗi ngày", "type": "need", "tag": "mong_nhe_di_dong"}
