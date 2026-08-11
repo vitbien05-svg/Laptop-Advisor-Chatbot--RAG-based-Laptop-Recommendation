@@ -53,24 +53,18 @@ User query
 
 ## 📊 Evaluation (two layers)
 
-**Retrieval** — 24 self-written gold queries (need / constraint / combined), auto-scored from metadata.
+**Retrieval** — 24 self-written gold queries (need), auto-scored from metadata.
 
 | Query type | Mode | P@5 | NDCG@5 |
 |---|---|---|---|
 | Need | dense-only | 0.47 | 0.47 |
 | Need | **hybrid + rerank** | **0.93** | **0.91** |
-| Combined (tag + constraint) | hybrid + rerank | 0.44 | 0.43 |
 
 **Generation** — RAGAS (`Faithfulness`, `Answer Relevancy`) + a deterministic groundedness check
-(recommended machines must exist in the retrieved context). Context precision/recall are intentionally
-**omitted** — retrieval is already measured above, and recall needs a gold answer a recommendation task lacks.
-
 | Metric | Score |
 |---|---|
 | Faithfulness (RAGAS) | 0.88 |
 | Answer Relevancy (RAGAS) | 0.55 |
-| Groundedness (deterministic, no hallucinated machine) | 1.00 |
-
 Run: `python eval/eval_min.py` (retrieval) · `python eval/eval_ragas.py` (generation) ·
 `python eval/test_hard_cases.py` (CRAG behaviour on tricky queries).
 
