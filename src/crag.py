@@ -1,22 +1,50 @@
 """
-crag.py — Corrective RAG (rút gọn, hợp bài toán recommendation).
+crag.py — Corrective RAG với LLM GRADER (đúng tinh thần paper CRAG 2024).
 
-Ý tưởng (từ paper CRAG 2024, thích nghi cho rec):
-- KHÔNG tin retrieval mù quáng. Sau khi lấy kết quả → GRADER chấm: tốt / mơ hồ / kém.
-- Kém  → SỬA: viết lại query (rewrite) rồi tìm lại.
-- Vẫn kém → KHÔNG bịa, mà HỎI LẠI user (clarify) để lấy thêm ngân sách/nhu cầu.
+Ý tưởng: KHÔNG tin retrieval mù. Sau khi lấy kết quả → một LLM GRADER đọc (nhu cầu + các máy
+lấy được) và phán 1 trong 3:
+    - correct   : máy khớp tốt nhu cầu             → dùng luôn.
+    - ambiguous : nhu cầu QUÁ MƠ HỒ/thiếu thông tin → HỎI LẠI user (không đoán bừa).
+    - incorrect : lấy SAI, không liên quan          → REWRITE query, tìm lại, chấm lại.
 
-Chi phí: +1 call chấm điểm mỗi lần (rẻ, gpt-4o-mini); chỉ khi kém mới tốn thêm rewrite/clarify.
+Khác bản cũ (chỉ dùng điểm rerank): grader là LLM → ĐỌC được nội dung, phân biệt được "mơ hồ"
+(cần hỏi lại) với "sai" (cần tìm lại) — thứ mà một con số rerank không tách được.
+
+Chi phí: +1 LLM call (grader) mỗi lần; thêm rewrite/clarify khi cần. Dùng gpt-4o-mini nên rẻ.
 """
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import BaseModel, Field
 
-# Ngưỡng gate theo ĐIỂM RERANK (sigmoid ∈ [0,1]), calibrate từ probe thực tế:
-#   ≥ HIGH → tin tưởng (dùng luôn) | ≤ LOW → kém (sửa/hỏi lại) | giữa → tạm dùng
-# Reranker cho ~0.50 khi KHÔNG khớp gì (điểm trung tính) → LOW đặt sát trên 0.50 để bắt nhiễu.
-# HẠN CHẾ ĐÃ BIẾT: vùng 0.51-0.55 nhập nhằng — câu mơ hồ và câu-yếu-nhưng-hợp-lệ lẫn nhau;
-# đặt LOW thấp để KHÔNG từ chối oan câu hợp lệ, đổi lại đôi khi bỏ sót câu mơ hồ.
-SCORE_HIGH = 0.62
-SCORE_LOW = 0.51
+GRADER_SYSTEM = (
+    "Bạn là bộ chấm chất lượng kết quả tra cứu laptop. Đọc NHU CẦU và DANH SÁCH máy lấy được, "
+    "phán một trong ba nhãn:\n"
+    "- 'ambiguous': khi KHÔNG rõ TÁC VỤ CỤ THỂ để chọn cấu hình — vd chỉ nói 'đi thực tập', 'đi "
+    "làm', 'đi học', 'dùng chung chung' mà KHÔNG cho biết ngành/tác vụ (chơi game? đồ họa? lập "
+    "trình? AI?...) VÀ cũng không có ngân sách/hãng. Nếu có TÁC VỤ cụ thể (game/đồ họa/lập trình/AI/"
+    "văn phòng/giải trí) HOẶC ngân sách/hãng/RAM thì KHÔNG phải ambiguous.\n"
+    "- 'correct': nhu cầu đủ rõ VÀ các máy khớp tốt.\n"
+    "- 'incorrect': nhu cầu đủ rõ nhưng máy lấy về KHÔNG liên quan.\n"
+    "Chỉ chấm dựa trên nhu cầu và danh sách được cho."
+)
+
+
+class Grade(BaseModel):
+    verdict: str = Field(description="Một trong: 'correct' | 'ambiguous' | 'incorrect'")
+    reason: str = Field(description="Lý do ngắn gọn (1 câu).")
+
+
+def grade_retrieval(model, query, docs) -> Grade:
+    """LLM grader: chấm (nhu cầu, docs) → correct/ambiguous/incorrect."""
+    ctx = "\n".join(
+        f"- {d.metadata.get('name', '?')}: {d.page_content[:180]}" for d in docs[:5]
+    ) or "(không lấy được máy nào)"
+    prompt = f"NHU CẦU:\n{query}\n\nDANH SÁCH MÁY LẤY ĐƯỢC:\n{ctx}"
+    try:
+        return model.with_structured_output(Grade).invoke(
+            [SystemMessage(content=GRADER_SYSTEM), HumanMessage(content=prompt)]
+        )
+    except Exception:
+        return Grade(verdict="correct", reason="grader lỗi → tạm tin retrieval")
 
 
 def rewrite(model, query) -> str:
@@ -29,35 +57,38 @@ def rewrite(model, query) -> str:
 
 def clarify_question(model, query) -> str:
     resp = model.invoke([HumanMessage(content=(
-        f"Chưa tìm được laptop phù hợp cho nhu cầu: '{query}'. Hãy viết 1 câu hỏi NGẮN, thân "
-        "thiện hỏi thêm thông tin quan trọng nhất (ngân sách hoặc nhu cầu chính) để tư vấn tốt hơn."
+        f"Nhu cầu mua laptop chưa đủ rõ để tư vấn: '{query}'. Hãy viết 1 câu hỏi NGẮN, thân thiện "
+        "hỏi thêm 1-2 thông tin QUAN TRỌNG NHẤT (mục đích dùng / ngân sách) để tư vấn tốt hơn."
     ))])
-    return (resp.content or "Bạn cho mình biết thêm ngân sách và nhu cầu chính nhé?").strip()
+    return (resp.content or "Bạn cho mình biết thêm mục đích dùng và ngân sách nhé?").strip()
 
 
 def corrective_retrieve(model, retriever, query, k=5, verbose=False):
     """
-    Gate theo điểm rerank (không tốn LLM call để chấm):
-      - top ≥ HIGH → tin tưởng, dùng luôn.
-      - top ≤ LOW  → kém → rewrite thử lại; vẫn kém → HỎI LẠI user.
-      - giữa       → tạm dùng kết quả.
+    LLM-grader CRAG:
+      correct   → dùng luôn.
+      ambiguous → HỎI LẠI user (clarify).
+      incorrect → rewrite → tìm lại → chấm lại; vẫn không ổn → hỏi lại.
     Trả về (docs, clarify). clarify=None nếu ổn.
     """
-    docs, scores = retriever.search(query, k=k, return_scores=True)
-    top = scores[0] if scores else 0.0
+    docs = retriever.search(query, k=k)
+    grade = grade_retrieval(model, query, docs)
     if verbose:
-        print(f"[CRAG] top score lần 1: {top:.3f}")
-    if top >= SCORE_HIGH:
+        print(f"[CRAG] lần 1: {grade.verdict} — {grade.reason}")
+
+    if grade.verdict == "correct":
         return docs, None
+    if grade.verdict == "ambiguous":
+        return docs, clarify_question(model, query)
 
-    # điểm thấp → rewrite rồi thử lại (chỉ tốn LLM khi cần)
+    # incorrect → rewrite → thử lại → chấm lại
     q2 = rewrite(model, query)
-    docs2, scores2 = retriever.search(q2, k=k, return_scores=True)
-    top2 = scores2[0] if scores2 else 0.0
+    docs2 = retriever.search(q2, k=k)
+    grade2 = grade_retrieval(model, query, docs2)
     if verbose:
-        print(f"[CRAG] rewrite: {q2!r} -> top score lần 2: {top2:.3f}")
+        print(f"[CRAG] rewrite {q2!r} -> lần 2: {grade2.verdict} — {grade2.reason}")
 
-    best_docs = docs2 if top2 >= top else docs
-    if max(top, top2) <= SCORE_LOW:
-        return best_docs, clarify_question(model, query)  # vẫn kém → hỏi lại
-    return best_docs, None
+    if grade2.verdict == "correct":
+        return docs2, None
+    # vẫn chưa ổn → trả kết quả tốt hơn nhưng KÈM hỏi lại (không đoán bừa)
+    return docs2, clarify_question(model, query)
